@@ -43,7 +43,9 @@ func (h *UploadHandler) Upload(
 	src, err := fileHeader.Open()
 
 	if err != nil {
-		return err
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+    "error": err.Error(),
+})
 	}
 
 	defer src.Close()
@@ -59,7 +61,9 @@ func (h *UploadHandler) Upload(
 	dst, err := os.Create(uploadPath)
 
 	if err != nil {
-		return err
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+    "error": err.Error(),
+})
 	}
 
 	defer dst.Close()
@@ -67,7 +71,9 @@ func (h *UploadHandler) Upload(
 	_, err = dst.ReadFrom(src)
 
 	if err != nil {
-		return err
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+    "error": err.Error(),
+})
 	}
 
 	chunks, err := chunker.Split(
@@ -76,7 +82,9 @@ func (h *UploadHandler) Upload(
 	)
 
 	if err != nil {
-		return err
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+    "error": err.Error(),
+})
 	}
 
 	err = h.Repo.CreateFile(models.File{
@@ -86,7 +94,9 @@ func (h *UploadHandler) Upload(
 	})
 
 	if err != nil {
-		return err
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+    "error": err.Error(),
+})
 	}
 
 	for _, chunk := range chunks {
@@ -102,7 +112,9 @@ func (h *UploadHandler) Upload(
 		)
 
 		if err != nil {
-			return err
+			return c.JSON(http.StatusInternalServerError, map[string]string{
+    "error": err.Error(),
+})
 		}
 	}
 
