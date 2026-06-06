@@ -8,17 +8,22 @@ import (
 	"dfs/internal/chunker"
 	"dfs/internal/models"
 	"dfs/internal/repository"
+	"dfs/storagepb"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
 
 type UploadHandler struct {
-	Repo *repository.FileRepository
+Repo *repository.FileRepository,
+StorageClient storagepb.StorageServiceClient
 }
+
+
 
 func NewUploadHandler(
 	repo *repository.FileRepository,
+	storageClient storagepb.StorageServiceClient,
 ) *UploadHandler {
 	return &UploadHandler{
 		Repo: repo,
@@ -76,7 +81,7 @@ func (h *UploadHandler) Upload(
 })
 	}
 
-	chunks, err := chunker.Split(
+	chunks, err := chunker.SplitToMemory(
 		uploadPath,
 		4*1024*1024,
 	)
@@ -99,24 +104,51 @@ func (h *UploadHandler) Upload(
 })
 	}
 
-	for _, chunk := range chunks {
 
-		err = h.Repo.CreateChunk(
-			models.Chunk{
-				ID:         chunk.ID,
-				FileID:     fileID,
-				ChunkIndex: chunk.Index,
-				Path:       chunk.Path,
-				Size:       chunk.Size,
-			},
-		)
 
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{
-    "error": err.Error(),
-})
-		}
+for _, chunk := range chunks {
+
+	resp, err := h.StorageClient.StoreChunk(
+		c.Request().Context(),
+		&storagepb.StoreChunkRequest{
+			ChunkId: chunk.ID,
+			Data:    chunk.Data,
+		},
+	)
+
+	if err != nil {
+		return err
 	}
+
+	err = h.Repo.CreateChunk(
+		models.Chunk{
+			ID:         chunk.ID,
+			FileID:     fileID,
+			ChunkIndex: chunk.Index,
+			Path:       resp.Path,
+			Size:       chunk.Size,
+		},
+	)
+
+	if err != nil {
+		return err
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	return c.JSON(
 		http.StatusCreated,

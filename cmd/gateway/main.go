@@ -8,7 +8,7 @@ import (
 	"dfs/internal/postgres"
 	"dfs/internal/repository"
 	"log"
-
+	dfsgrpc "dfs/internal/grpc"
   "github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 )
@@ -27,7 +27,10 @@ if err != nil {
 	defer pool.Close()
 	repo := repository.NewFileRepository(pool)
 	
-	uploadHandler := handlers.NewUploadHandler(repo)
+	uploadHandler := handlers.NewUploadHandler(
+	repo,
+	storageClient,
+)
 	downloadHandler := handlers.NewDownloadHandler(repo)
 
 	e := echo.New()
